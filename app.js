@@ -61,29 +61,19 @@ const lobbies = []; // Object to store active lobbies and their players
 
 
 // Function to start the game for a specific lobby
-async function startGame(lobbyId) {
-  // Get the difficulty level of the lobby from the playersData object
-  // const lobbyDifficultyLevel = playersData[lobbyId].difficultyLevel;
+async function startGame(lobby) {
 
   // Get a random text from the corresponding difficulty level
-  // const textOptions = difficultyLevels[lobbyDifficultyLevel];
-  // const randomText = textOptions[Math.floor(Math.random() * textOptions.length)];
 const randomText = await fetchText();
-
-for(let i=0;i<lobbies.length;i++){
-  if(lobbies[i].lobbyId===lobbyId){
-    // Store the generated text for the lobby in the playersData object
-    lobbies[i].correctText = randomText;
-    break;
-  }
-}
+lobby.correctText = randomText;
   // Send the game details to all players in the lobby
   const gameDetails = {
     type: 'gameStart',
     text: randomText,
     startTime: Date.now(), // Start time of the game on the server-side
   };
-  io.to(lobbyId).emit('gameUpdate', gameDetails);
+      for(let k = 0;k<lobby.players.length;k++)
+      io.to(lobby.players[k].id).emit('gameUpdate', gameDetails);
 }
 // Function to get the correct text for a specific lobby
 function getCorrectText(lobbyId) {
@@ -97,7 +87,7 @@ function getCorrectText(lobbyId) {
 
 // Function to generate a unique lobby ID
 function generateUniqueLobbyId() {
-  return Math.random().toString(36).substring(2, 5);
+  return{lobby:{lobbyId:Math.random().toString(36).substring(2, 5)}};
 }
 
 // Function to calculate accuracy
@@ -120,7 +110,7 @@ function getPlayerLobby(playerId) {
   for(let i = 0;i<lobbies.length;i++){
     for(let j=0;j<lobbies[i].players.length;j++){
       if(lobbies[i].players[j].id===playerId){
-        return {lobbyId:lobbies[i].lobbyId,index:i};
+        return {lobbyId:lobbies[i].lobbyId,index:i,correctText:lobbies[i].correctText};
       }
     }
   }
@@ -143,21 +133,20 @@ io.on('connection', (socket) => {
     }
     for(let i = 0;i<lobbies.length;i++){
       if(lobbies[i].difficultyLevel===data.difficultyLevel && lobbies[i].players.length<MAX_PLAYERS_PER_LOBBY ){
-      lobbyId = lobbies[i].lobbyId;
+        lobbyId = {lobby:lobbies[i],index:i};
       }
     }
 
     // If no lobby has space, create a new one
     if (!lobbyId) {
       lobbyId = generateUniqueLobbyId();
-      lobbies.push({players:[],lobbyId,difficultyLevel:data.difficultyLevel});
-      // playersData[lobbyId] = {
-      //   difficultyLevel: difficultyLevel,
-      // };
+
+      lobbies.push({players:[],lobbyId:lobbyId.lobby.lobbyId,difficultyLevel:data.difficultyLevel,size:MAX_PLAYERS_PER_LOBBY});
+      lobbyId = {index:lobbies.length-1};
     }
 
     // Add the player to the lobby
-    lobbies[lobbies.length-1].players.push({id:socket.id});
+    lobbies[lobbyId.index].players.push({id:socket.id});
 
     // Join the room associated with the lobby
     socket.join(lobbyId);
@@ -165,15 +154,17 @@ io.on('connection', (socket) => {
     socket.emit('joinedLobby', lobbyId);
 
     // Start the game if the lobby is full
-    if (lobbies[lobbies.length-1].players.length === MAX_PLAYERS_PER_LOBBY) {
-      startGame(lobbyId); // Implement this function to start the game for a specific lobby
+    if (lobbies[lobbyId.index].players.length === MAX_PLAYERS_PER_LOBBY) {
+      startGame(lobbyId.lobby); // Implement this function to start the game for a specific lobby
     }
     else{
       const gameDetails = {
         type: 'wait',
-        values: MAX_PLAYERS_PER_LOBBY-lobbies[lobbies.length-1].players.length
+        values: MAX_PLAYERS_PER_LOBBY-lobbies[lobbyId.index].players.length
       };
-      io.to(lobbyId).emit('gameUpdate', gameDetails);
+      
+      for(let k = 0;k<lobbies[lobbyId.index].players.length;k++)
+      io.to(lobbies[lobbyId.index].players[k].id).emit('gameUpdate', gameDetails);
     }
   });
 
@@ -189,8 +180,9 @@ io.on('connection', (socket) => {
       const correctText = getCorrectText(lobbyId);
   
       // Calculate accuracy and WPM
-
-      const accuracy = calculateAccuracy(text.trim(), correctText);
+      if(correctText){
+        console.log(correctText);
+        const accuracy = calculateAccuracy(text.trim(), correctText);
       const timeTaken = Date.now() - startTime;
       const wpm = calculateWPM(text.trim(), timeTaken);
       
@@ -212,12 +204,14 @@ io.on('connection', (socket) => {
         type: 'playerDataUpdate',
         playerData: lobbies[index].players,
       };
-      io.to(lobbyId).emit('gameUpdate', gameUpdate);
-    }
-    else{
-      socket.leave(lobbyId);
-    }
 
+      
+      for(let k = 0;k<lobbies[index].players.length;k++)
+      io.to(lobbies[index].players[k].id).emit('gameUpdate', gameUpdate);
+
+      }
+      
+    }
 
   });
 
@@ -242,11 +236,32 @@ io.on('connection', (socket) => {
           }
         }
         if (i !== -1) {
-          players.splice(i, 1);
+          lobbies[index].players.splice(i, 1);
           socket.leave(lobbyId);
           // If the lobby becomes empty, delete it
-          if (players.length === 0) {
+          if (lobbies[index].players.length === 0) {
             lobbies.splice(index, 1);
+          }
+          else if(lobbies[index].players.length<lobbies[index].size && lobbies[index].correctText===undefined){
+            const gameDetails = {
+              type: 'wait',
+              values: lobbies[index].size-lobbies[index].players.length
+            };
+            for(let k = 0;k<lobbies[index].players.length;k++)
+            io.to(lobbies[index].players[k].id).emit('gameUpdate', gameDetails);
+          }
+          else{
+            
+            // Send the updated player data to all clients in the same lobby
+            const gameUpdate = {
+              type: 'playerDataUpdate',
+              playerData: lobbies[index].players,
+            };
+            
+      
+            
+            for(let k = 0;k<lobbies[index].players.length;k++)
+            io.to(lobbies[index].players[k].id).emit('gameUpdate', gameUpdate);
           }
         }
       }
