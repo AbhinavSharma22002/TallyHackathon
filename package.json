@@ -1,0 +1,25 @@
+{
+  "name": "tallyhackathon",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node ./bin/www",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "cookie-parser": "~1.4.4",
+    "debug": "~2.6.9",
+    "dotenv": "^16.0.3",
+    "ejs": "~2.6.1",
+    "express": "~4.16.1",
+    "express-validator": "^6.14.2",
+    "fs": "^0.0.1-security",
+    "http-errors": "~1.6.3",
+    "isomorphic-fetch": "^3.0.0",
+    "morgan": "^1.10.0",
+    "socket.io": "^4.7.1"
+  },
+  "author": "",
+  "license": "ISC"
+}
