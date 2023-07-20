@@ -57,7 +57,6 @@ app.use(function(req, res, next) {
   });
 
   
-const MAX_PLAYERS_PER_LOBBY = 1; // Set the maximum number of players in a lobby
 const lobbies = []; // Object to store active lobbies and their players
 
 
@@ -133,19 +132,25 @@ io.on('connection', (socket) => {
   console.log('New user connected:', socket.id);
 
   // Create or join a lobby
-  socket.on('createOrJoin', async() => {
+  socket.on('createOrJoin', async(data) => {
     let lobbyId = null;
+    let MAX_PLAYERS_PER_LOBBY= -1; // Set the maximum number of players in a lobby
+    if(data.type==="solo"){
+      MAX_PLAYERS_PER_LOBBY = 1;
+    }
+    else{
+      MAX_PLAYERS_PER_LOBBY = 4;
+    }
     for(let i = 0;i<lobbies.length;i++){
-      if(Object.values(lobbies[i]).includes('players') && lobbies[i].players.length<MAX_PLAYERS_PER_LOBBY){
-        // && playersData[id].difficultyLevel === difficultyLevel
-        lobbyId = lobbies[i].lobbyId;
+      if(lobbies[i].difficultyLevel===data.difficultyLevel && lobbies[i].players.length<MAX_PLAYERS_PER_LOBBY ){
+      lobbyId = lobbies[i].lobbyId;
       }
     }
 
     // If no lobby has space, create a new one
     if (!lobbyId) {
       lobbyId = generateUniqueLobbyId();
-      lobbies.push({players:[],lobbyId});
+      lobbies.push({players:[],lobbyId,difficultyLevel:data.difficultyLevel});
       // playersData[lobbyId] = {
       //   difficultyLevel: difficultyLevel,
       // };
@@ -162,6 +167,13 @@ io.on('connection', (socket) => {
     // Start the game if the lobby is full
     if (lobbies[lobbies.length-1].players.length === MAX_PLAYERS_PER_LOBBY) {
       startGame(lobbyId); // Implement this function to start the game for a specific lobby
+    }
+    else{
+      const gameDetails = {
+        type: 'wait',
+        values: MAX_PLAYERS_PER_LOBBY-lobbies[lobbies.length-1].players.length
+      };
+      io.to(lobbyId).emit('gameUpdate', gameDetails);
     }
   });
 
@@ -219,6 +231,7 @@ io.on('connection', (socket) => {
     }
     else{
       const {lobbyId,index} = data;
+      console.log(lobbies[index]);
       if (lobbyId) {
         const players = lobbies[index].players;
         let i = -1;

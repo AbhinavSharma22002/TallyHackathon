@@ -2,7 +2,12 @@ const socket = io();
 
 //as soon as the solo page loads a new lobby should be created
 window.onload = function(e){
-    socket.emit('createOrJoin');
+    const difficultyLevel = prompt('Enter the difficulty level (easy, medium, or hard):');
+    if (difficultyLevel && ['easy', 'medium', 'hard'].includes(difficultyLevel.toLowerCase())) {
+        socket.emit('createOrJoin',{type:'solo',difficultyLevel:difficultyLevel.toLowerCase()});
+    } else {
+      alert('Invalid difficulty level. Please enter "easy", "medium", or "hard".');
+    }
 }
 
 // Handle joinedLobby event and display the lobby ID (you can handle this in your UI)
@@ -15,6 +20,9 @@ function sendTypedText(text, startTime) {
     socket.emit('typedText', { text, startTime });
   }
 
+  socket.on('disconnected',()=>{
+    alert('You Were Disconnected');
+  });
   
 // Handle real-time updates from the server
 socket.on('gameUpdate', (data) => {
@@ -27,7 +35,7 @@ socket.on('gameUpdate', (data) => {
     else if(data.type==="gameStart"){
         // Example: Display the lobby ID in the UI
         document.getElementById('game-text').innerHTML = data.text;
-    }
+    }    
     });
   
   // Example function to update the leaderboard on the frontend
