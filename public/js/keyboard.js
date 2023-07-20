@@ -19,7 +19,6 @@ function sendTypedText(text, startTime) {
 // Handle real-time updates from the server
 socket.on('gameUpdate', (data) => {
     if (data.type === 'playerDataUpdate') {
-        console.log(data)
       // Handle updates to the player data (accuracy and WPM) and update the frontend
       const playersData = data.playerData;
       // Example: Update the leaderboard or player progress on the frontend

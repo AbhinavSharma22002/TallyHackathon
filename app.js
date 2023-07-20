@@ -53,14 +53,12 @@ app.use(function(req, res, next) {
   server.on('listening', ()=>{
     var addr = server.address();
     var bind = typeof addr === 'string'? 'pipe ' + addr: 'port ' + addr.port;
-    console.log(addr);
     console.log('Listening on ' + bind);
   });
 
   
 const MAX_PLAYERS_PER_LOBBY = 1; // Set the maximum number of players in a lobby
-const lobbies = {}; // Object to store active lobbies and their players
-const playersData = {}; // Object to store players' data (progress, accuracy, WPM)
+const lobbies = []; // Object to store active lobbies and their players
 
 
 // Function to start the game for a specific lobby
@@ -72,13 +70,14 @@ async function startGame(lobbyId) {
   // const textOptions = difficultyLevels[lobbyDifficultyLevel];
   // const randomText = textOptions[Math.floor(Math.random() * textOptions.length)];
 const randomText = await fetchText();
-// Create the playersData object for the lobby if it doesn't exist
-if (!playersData[lobbyId]) {
-  playersData[lobbyId] = {};
-}
 
-// Store the generated text for the lobby in the playersData object
-playersData[lobbyId].correctText = randomText;
+for(let i=0;i<lobbies.length;i++){
+  if(lobbies[i].lobbyId===lobbyId){
+    // Store the generated text for the lobby in the playersData object
+    lobbies[i].correctText = randomText;
+    break;
+  }
+}
   // Send the game details to all players in the lobby
   const gameDetails = {
     type: 'gameStart',
@@ -89,18 +88,17 @@ playersData[lobbyId].correctText = randomText;
 }
 // Function to get the correct text for a specific lobby
 function getCorrectText(lobbyId) {
-  // Ensure that the playersData object exists for the lobby
-  if (!playersData[lobbyId]) {
-    return null;
+  for(let i = 0;i<lobbies.length;i++){
+    if(lobbies[i].lobbyId===lobbyId){
+      return lobbies[i].correctText;
+    }
   }
-
-  // Assuming you have stored the correct text in the playersData object during the startGame function
-  return playersData[lobbyId].correctText;
+    return null;
 }
 
 // Function to generate a unique lobby ID
 function generateUniqueLobbyId() {
-  return Math.random().toString(36).substr(2, 5);
+  return Math.random().toString(36).substring(2, 5);
 }
 
 // Function to calculate accuracy
@@ -120,9 +118,11 @@ function calculateWPM(typedText, timeTaken) {
 
 // Function to get the lobby ID that a player is in
 function getPlayerLobby(playerId) {
-  for (const [lobbyId, players] of Object.entries(lobbies)) {
-    if (players.includes(playerId)) {
-      return lobbyId;
+  for(let i = 0;i<lobbies.length;i++){
+    for(let j=0;j<lobbies[i].players.length;j++){
+      if(lobbies[i].players[j].id===playerId){
+        return {lobbyId:lobbies[i].lobbyId,index:i};
+      }
     }
   }
   return null; // Player not found in any lobby
@@ -135,27 +135,24 @@ io.on('connection', (socket) => {
   // Create or join a lobby
   socket.on('createOrJoin', async() => {
     let lobbyId = null;
-
-    // Check if any lobby has space for more players
-    for (const [id, players] of Object.entries(lobbies)) {
-      // && playersData[id].difficultyLevel === difficultyLevel
-      if (players.length < MAX_PLAYERS_PER_LOBBY ) {
-        lobbyId = id;
-        break;
+    for(let i = 0;i<lobbies.length;i++){
+      if(Object.values(lobbies[i]).includes('players') && lobbies[i].players.length<MAX_PLAYERS_PER_LOBBY){
+        // && playersData[id].difficultyLevel === difficultyLevel
+        lobbyId = lobbies[i].lobbyId;
       }
     }
 
     // If no lobby has space, create a new one
     if (!lobbyId) {
       lobbyId = generateUniqueLobbyId();
-      lobbies[lobbyId] = [];
+      lobbies.push({players:[],lobbyId});
       // playersData[lobbyId] = {
       //   difficultyLevel: difficultyLevel,
       // };
     }
 
     // Add the player to the lobby
-    lobbies[lobbyId].push(socket.id);
+    lobbies[lobbies.length-1].players.push({id:socket.id});
 
     // Join the room associated with the lobby
     socket.join(lobbyId);
@@ -163,7 +160,7 @@ io.on('connection', (socket) => {
     socket.emit('joinedLobby', lobbyId);
 
     // Start the game if the lobby is full
-    if (lobbies[lobbyId].length === MAX_PLAYERS_PER_LOBBY) {
+    if (lobbies[lobbies.length-1].players.length === MAX_PLAYERS_PER_LOBBY) {
       startGame(lobbyId); // Implement this function to start the game for a specific lobby
     }
   });
@@ -171,49 +168,73 @@ io.on('connection', (socket) => {
   // Handle typed text from the client along with the time taken
   socket.on('typedText', (data) => {
     const { text, startTime } = data;
-    const lobbyId = getPlayerLobby(socket.id);
+    const data1 = getPlayerLobby(socket.id);
 
-    // Assuming you have stored the correct text for the game somewhere (e.g., in a variable or database)
-    const correctText = getCorrectText(lobbyId);
+    if(data1!=null){
+      
+      const {lobbyId,index} = data1;
+      // Assuming you have stored the correct text for the game somewhere (e.g., in a variable or database)
+      const correctText = getCorrectText(lobbyId);
+  
+      // Calculate accuracy and WPM
 
-    // Calculate accuracy and WPM
-    const accuracy = calculateAccuracy(text, correctText);
-    const timeTaken = Date.now() - startTime;
-    const wpm = calculateWPM(text, timeTaken);
+      const accuracy = calculateAccuracy(text.trim(), correctText);
+      const timeTaken = Date.now() - startTime;
+      const wpm = calculateWPM(text.trim(), timeTaken);
+      
+  
+      // Update the player's data in the object
+      for(let j = 0;j<lobbies[index].players.length;j++){
+        if(lobbies[index].players[j].id===socket.id){
+          lobbies[index].players[j] = {
+            id: socket.id,
+            typedText: text,
+            accuracy,
+            wpm,
+          }
+        }
+      }
+  
+      // Send the updated player data to all clients in the same lobby
+      const gameUpdate = {
+        type: 'playerDataUpdate',
+        playerData: lobbies[index].players,
+      };
+      io.to(lobbyId).emit('gameUpdate', gameUpdate);
+    }
+    else{
+      socket.leave(lobbyId);
+    }
 
-    // Update the player's data in the object
-    playersData[socket.id] = {
-      typedText: text,
-      accuracy,
-      wpm,
-    };
 
-    // Send the updated player data to all clients in the same lobby
-    const gameUpdate = {
-      type: 'playerDataUpdate',
-      playerData: playersData,
-    };
-    console.log(playersData);
-    io.to(lobbyId).emit('gameUpdate', gameUpdate);
   });
 
   // Handle disconnections
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
     // Remove the player from the lobby they were in
-    const lobbyId = getPlayerLobby(socket.id);
-    console.log(lobbyId);
-    if (lobbyId) {
-      const players = lobbies[lobbyId];
-      const index = players.indexOf(socket.id);
-      console.log(index);
-      if (index !== -1) {
-        players.splice(index, 1);
-        socket.leave(lobbyId);
-        // If the lobby becomes empty, delete it
-        if (players.length === 0) {
-          delete lobbies[lobbyId];
-          delete playersData[lobbyId];
+    const data = getPlayerLobby(socket.id);
+    if(data==null){
+      socket.leave(socket.id);
+    }
+    else{
+      const {lobbyId,index} = data;
+      if (lobbyId) {
+        const players = lobbies[index].players;
+        let i = -1;
+        for(let j=0;j<players.length;j++){
+          if(players[j].id===socket.id){
+            i = j;
+            break;
+          }
+        }
+        if (i !== -1) {
+          players.splice(i, 1);
+          socket.leave(lobbyId);
+          // If the lobby becomes empty, delete it
+          if (players.length === 0) {
+            lobbies.splice(index, 1);
+          }
         }
       }
     }
