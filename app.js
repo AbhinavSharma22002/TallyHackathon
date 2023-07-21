@@ -83,7 +83,24 @@ function lobbyUpdate(index){
     let diff = lobbies[index].startTime;
     //each lobby will match only for 1 min
     if(diff<=0){
-      const gameUpdate = {
+
+      // Calculate player scores based on the scoring criteria
+lobbies[index].players.forEach((player) => {
+  const wpmScore = player.wpm * 0.5; 
+  const accuracyScore = player.accuracy * 0.5;
+  player.score = wpmScore + accuracyScore;
+});
+
+// Sort the players based on their scores in descending order
+lobbies[index].players.sort((a, b) => b.score - a.score);
+
+// Assign ranks to each player based on their position in the sorted list
+lobbies[index].players.forEach((player, index) => {
+  player.rank = index + 1;
+});
+
+
+const gameUpdate = {
         type: 'endGame',
         playerData: lobbies[index].players,
       };
@@ -153,6 +170,9 @@ function getPlayerLobby(playerId) {
   }
   return null; // Player not found in any lobby
 }
+
+
+
 
 // Handle Socket.io connections and game logic here
 io.on('connection', (socket) => {
@@ -301,6 +321,9 @@ io.on('connection', (socket) => {
       }
     }
   });
+
+
+
 });
 
   
