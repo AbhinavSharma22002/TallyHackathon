@@ -108,7 +108,9 @@ socket.on('gameUpdate', (data) => {
     for (const playerId in playersData) {
       const playerData = playersData[playerId];
       const playerRow = document.createElement('div');
+
       playerRow.textContent = `Player ${playerId}: Accuracy: ${playerData.accuracy}%, WPM: ${playerData.wpm}`;
+
       leaderboard.appendChild(playerRow);
     }
 
@@ -166,8 +168,15 @@ function createResultDetails(id) {
       const accuracyTag = document.querySelector(`${".accuracy-%s span".replace("%s",playersData[playerId].id)}`);
 
       const playerData = playersData[playerId];
+      if(playerData.wpm===undefined)
+      wpmTag.innerHTML = 'Yet to Start';
+      else
       wpmTag.innerHTML = playerData.wpm;
+      if(playerData.accuracy===undefined)
+      accuracyTag.innerHTML = 'Yet to Start';
+      else
       accuracyTag.innerHTML = playerData.accuracy;
+
     }
   }
   
