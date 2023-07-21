@@ -17,7 +17,8 @@ socket.on('joinedLobby', (lobbyId) => {
   
 // Function to send the typed text to the server
 function sendTypedText(text, startTime) {
-    socket.emit('typedText', { text, startTime });
+  const timestamp = Date.now()-startTime;
+    socket.emit('typedText', { text,timestamp });
   }
 
   socket.on('disconnected',()=>{
