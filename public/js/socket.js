@@ -45,6 +45,23 @@ socket.on('gameUpdate', (data) => {
     else if(data.type==="wait"){
       document.getElementById('game-text').innerHTML = `Waiting for other ${data.values} to join`;
     }
+    else if(data.type==="endGame"){
+      // Handle updates to the player data (accuracy and WPM) and update the frontend
+      const playersData = data.playerData;
+      const leaderboard = document.getElementById('leaderboard');
+    leaderboard.innerHTML = ''; // Clear the current leaderboard content
+    for (const playerId in playersData) {
+      const playerData = playersData[playerId];
+      const playerRow = document.createElement('div');
+      playerRow.textContent = `Player ${playerId}: Accuracy: ${playerData.accuracy}%, WPM: ${playerData.wpm}`;
+      leaderboard.appendChild(playerRow);
+    }
+
+    document.getElementById("game-text").style.display = "none";
+    document.getElementById("typing-area").style.display = "none";
+    const box = document.getElementsByClassName('keyboard')[0];
+    box.style.display = 'none';
+    }
     });
   
   // Example function to update the leaderboard on the frontend

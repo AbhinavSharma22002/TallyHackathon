@@ -71,6 +71,7 @@ else{
     correctText: randomText
   }
 }
+  lobby.startTime = Date.now();
 
   // Send the game details to all players in the lobby
   const gameDetails = {
@@ -80,6 +81,26 @@ else{
   };
       for(let k = 0;k<lobby.players.length;k++)
       io.to(lobby.players[k].id).emit('gameUpdate', gameDetails);
+}
+function lobbyUpdate(index){
+  console.log(lobbies[index]);
+  let interval = setInterval(() => {
+    
+    let diff = Date.now()-lobbies[index].startTime;
+    //each lobby will match only for 1 min
+    console.log(diff);
+    if(diff>=20000){
+      const gameUpdate = {
+        type: 'endGame',
+        playerData: lobbies[index].players,
+      };
+
+      
+      for(let k = 0;k<lobbies[index].players.length;k++)
+      io.to(lobbies[index].players[k].id).emit('gameUpdate', gameUpdate);
+      clearInterval(interval);
+    }
+  }, 1000); // Update every 1 second
 }
 // Function to get the correct text for a specific lobby
 function getCorrectText(lobbyId) {
@@ -126,7 +147,6 @@ function calculateWPM(typedText, timeInMilliseconds, correctText) {
   const typedWords = cleanAndSplitText(typedText).length;
   const timeInMinutes = timeInMilliseconds / (1000 * 60);
   const rawWPM = typedWords / timeInMinutes;
-  console.log(rawWPM)
 
   // Adjust WPM for accuracy percentage (reduce WPM based on accuracy)
   const accuracy = calculateAccuracy(typedText, correctText);
@@ -140,7 +160,7 @@ function getPlayerLobby(playerId) {
   for(let i = 0;i<lobbies.length;i++){
     for(let j=0;j<lobbies[i].players.length;j++){
       if(lobbies[i].players[j].id===playerId){
-        return {lobbyId:lobbies[i].lobbyId,index:i,correctText:lobbies[i].correctText};
+        return {lobbyId:lobbies[i].lobbyId,index:i,correctText:lobbies[i].correctText,startTime:lobbies[i].startTime};
       }
     }
   }
@@ -171,7 +191,7 @@ io.on('connection', (socket) => {
     if (!lobbyId) {
       lobbyId = generateUniqueLobbyId();
 
-      lobbies.push({players:[],lobbyId:lobbyId.lobby.lobbyId,difficultyLevel:data.difficultyLevel,size:MAX_PLAYERS_PER_LOBBY,correctText:''});
+      lobbies.push({type:data.type,players:[],lobbyId:lobbyId.lobby.lobbyId,difficultyLevel:data.difficultyLevel,size:MAX_PLAYERS_PER_LOBBY,correctText:'',startTime:null});
       lobbyId = {index:lobbies.length-1};
     }
 
@@ -186,6 +206,10 @@ io.on('connection', (socket) => {
     // Start the game if the lobby is full
     if (lobbies[lobbyId.index].players.length === MAX_PLAYERS_PER_LOBBY) {
       startGame(lobbies[lobbyId.index]); // Implement this function to start the game for a specific lobby
+      if(lobbies[lobbyId.index].type!=='solo'){
+        console.log(lobbyId);
+        lobbyUpdate(lobbyId.index);        
+      }
     }
     else{
       const gameDetails = {
@@ -200,23 +224,23 @@ io.on('connection', (socket) => {
 
   // Handle typed text from the client along with the time taken
   socket.on('typedText', (data) => {
-    const { text,timestamp } = data;
+    const { text } = data;
     const data1 = getPlayerLobby(socket.id);
 
     if(data1!=null){
       
-      const {lobbyId,index} = data1;
+      const {lobbyId,index,startTime} = data1;
       // Assuming you have stored the correct text for the game somewhere (e.g., in a variable or database)
       const correctTex = getCorrectText(lobbyId);
 
 
       // Calculate accuracy and WPM
       if(correctTex!==''){
-        const accuracy = calculateAccuracy(text.trim(), correctTex);
-      // const timeTaken = Date.now() - startTime;
-      const wpm = calculateWPM(text.trim(), timestamp, correctTex);
+        const accuracy = calculateAccuracy(text.trimStart(), correctTex);
+      const timeTaken = Date.now() - startTime;
+      const wpm = calculateWPM(text.trimStart(), timeTaken, correctTex);
+    
       
-  
       // Update the player's data in the object
       for(let j = 0;j<lobbies[index].players.length;j++){
         if(lobbies[index].players[j].id===socket.id){
@@ -228,8 +252,22 @@ io.on('connection', (socket) => {
           }
         }
       }
-  
-      // Send the updated player data to all clients in the same lobby
+
+      if(lobbies[index].correctText.length<=text.trimStart().length){
+        if(lobbies[index].type==='solo'){
+        // Send the updated player data to all clients in the same lobby
+      const gameUpdate = {
+        type: 'endGame',
+        playerData: lobbies[index].players,
+      };
+
+      
+      for(let k = 0;k<lobbies[index].players.length;k++)
+      io.to(lobbies[index].players[k].id).emit('gameUpdate', gameUpdate);
+    }
+      }
+      else{
+        // Send the updated player data to all clients in the same lobby
       const gameUpdate = {
         type: 'playerDataUpdate',
         playerData: lobbies[index].players,
@@ -238,6 +276,9 @@ io.on('connection', (socket) => {
       
       for(let k = 0;k<lobbies[index].players.length;k++)
       io.to(lobbies[index].players[k].id).emit('gameUpdate', gameUpdate);
+      }
+  
+      
 
       }
       
