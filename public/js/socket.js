@@ -41,6 +41,7 @@ socket.on('gameUpdate', (data) => {
     else if(data.type==="gameStart"){
         // Example: Display the lobby ID in the UI
         document.getElementById('game-text').innerHTML = data.text;
+        document.getElementById('typing-area').focus();
     }
     else if(data.type==="wait"){
       document.getElementById('game-text').innerHTML = `Waiting for other ${data.values} to join`;

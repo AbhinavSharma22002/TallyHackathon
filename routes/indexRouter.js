@@ -8,7 +8,8 @@ router.get('/', function(req, res, next) {
 router.get('/solo', async function(req,res,next){
   
   let data1 = [
-    {item: '/stylesheet/keyboard.css'}
+    {item: '/stylesheet/keyboard.css'},
+    {item: '/stylesheet/design.css'}
   ];
   let data = [
     {item: '/js/keyboard.js'}
@@ -18,7 +19,8 @@ router.get('/solo', async function(req,res,next){
 
 router.get('/multiplayer',function(req,res,next){
   let data1 = [
-    {item: '/stylesheet/keyboard.css'}
+    {item: '/stylesheet/keyboard.css'},
+    {item: '/stylesheet/design.css'}
   ];
   let data = [
     {item: '/js/socket.js'}

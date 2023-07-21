@@ -77,6 +77,7 @@ else{
   const gameDetails = {
     type: 'gameStart',
     text: randomText,
+    players: lobby.players,
     startTime: Date.now(), // Start time of the game on the server-side
   };
       for(let k = 0;k<lobby.players.length;k++)
