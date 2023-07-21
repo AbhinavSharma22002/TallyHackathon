@@ -313,7 +313,7 @@ io.on('connection', (socket) => {
           if (lobbies[index].players.length === 0) {
             lobbies.splice(index, 1);
           }
-          else if(lobbies[index].players.length<lobbies[index].size && lobbies[index].correctText===undefined){
+          else if(lobbies[index].players.length<lobbies[index].size && lobbies[index].correctText===''){
             const gameDetails = {
               type: 'wait',
               values: lobbies[index].size-lobbies[index].players.length
