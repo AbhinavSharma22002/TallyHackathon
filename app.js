@@ -64,31 +64,23 @@ const lobbies = []; // Object to store active lobbies and their players
 async function startGame(lobby) {
   // Get a random text from the corresponding difficulty level
 const randomText = await fetchText();
-if(lobby.correctText!==undefined)
-    lobby.correctText =  randomText
-else{
-  lobby = {
-    correctText: randomText
-  }
-}
-  lobby.startTime = Date.now();
+    lobby.correctText =  randomText;
 
   // Send the game details to all players in the lobby
   const gameDetails = {
     type: 'gameStart',
     text: randomText,
     players: lobby.players,
-    startTime: Date.now(), // Start time of the game on the server-side
+    startTime:  lobby.startTime, // Start time of the game on the server-side
   };
       for(let k = 0;k<lobby.players.length;k++)
       io.to(lobby.players[k].id).emit('gameUpdate', gameDetails);
 }
 function lobbyUpdate(index){
   let interval = setInterval(() => {
-    
-    let diff = Date.now()-lobbies[index].startTime;
+    let diff = lobbies[index].startTime;
     //each lobby will match only for 1 min
-    if(diff>=60000){
+    if(diff<=0){
       const gameUpdate = {
         type: 'endGame',
         playerData: lobbies[index].players,
@@ -99,6 +91,20 @@ function lobbyUpdate(index){
       lobbies.splice(index, 1);
 
       clearInterval(interval);
+    }
+    else{
+      lobbies[index].startTime = diff-1;
+
+      const gameUpdate = {
+        type: 'playerDataUpdate',
+        startTime: lobbies[index].startTime,
+        playerData: lobbies[index].players,
+      };
+
+      
+      for(let k = 0;k<lobbies[index].players.length;k++)
+      io.to(lobbies[index].players[k].id).emit('gameUpdate', gameUpdate);
+
     }
   }, 1000); // Update every 1 second
 }
@@ -169,7 +175,7 @@ io.on('connection', (socket) => {
     if (!lobbyId) {
       lobbyId = generateUniqueLobbyId();
 
-      lobbies.push({type:data.type,players:[],lobbyId:lobbyId.lobby.lobbyId,difficultyLevel:data.difficultyLevel,size:MAX_PLAYERS_PER_LOBBY,correctText:'',startTime:null});
+      lobbies.push({type:data.type,players:[],lobbyId:lobbyId.lobby.lobbyId,difficultyLevel:data.difficultyLevel,size:MAX_PLAYERS_PER_LOBBY,correctText:'',startTime:60});
       lobbyId = {index:lobbies.length-1};
     }
 
@@ -184,10 +190,7 @@ io.on('connection', (socket) => {
     // Start the game if the lobby is full
     if (lobbies[lobbyId.index].players.length === MAX_PLAYERS_PER_LOBBY) {
       startGame(lobbies[lobbyId.index]); // Implement this function to start the game for a specific lobby
-      if(lobbies[lobbyId.index].type!=='solo'){
-        console.log(lobbyId);
-        lobbyUpdate(lobbyId.index);        
-      }
+      lobbyUpdate(lobbyId.index);        
     }
     else{
       const gameDetails = {
@@ -214,10 +217,7 @@ io.on('connection', (socket) => {
 
       // Calculate accuracy and WPM
       if(correctTex!==''){
-        const accuracy = calculateAccuracy(text.trimStart(), correctTex);
-      // const timeTaken = Date.now() - startTime;
-      // const wpm = calculateWPM(text.trimStart(), timeTaken, correctTex);
-    
+        const accuracy = calculateAccuracy(text.trimStart(), correctTex);    
       
       // Update the player's data in the object
       for(let j = 0;j<lobbies[index].players.length;j++){
@@ -226,39 +226,23 @@ io.on('connection', (socket) => {
             id: socket.id,
             typedText: text,
             accuracy,
-            wpm,
+            wpm
           }
         }
       }
 
-      if(lobbies[index].correctText.length<=text.trimStart().length){
-        if(lobbies[index].type==='solo'){
-        // Send the updated player data to all clients in the same lobby
-      const gameUpdate = {
-        type: 'endGame',
-        playerData: lobbies[index].players,
-      };
-
-      
-      for(let k = 0;k<lobbies[index].players.length;k++)
-      io.to(lobbies[index].players[k].id).emit('gameUpdate', gameUpdate);
-    }
-      }
-      else{
-        // Send the updated player data to all clients in the same lobby
       const gameUpdate = {
         type: 'playerDataUpdate',
+        startTime: lobbies[index].startTime,
         playerData: lobbies[index].players,
       };
 
       
       for(let k = 0;k<lobbies[index].players.length;k++)
       io.to(lobbies[index].players[k].id).emit('gameUpdate', gameUpdate);
-      }
 
       }
-      
-    }
+      }
 
   });
 
@@ -302,6 +286,7 @@ io.on('connection', (socket) => {
             const gameUpdate = {
               type: 'playerDataUpdate',
               playerData: lobbies[index].players,
+              startTime: lobbies[index].startTime
             };
             
       

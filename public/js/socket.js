@@ -39,10 +39,9 @@ socket.on('joinedLobby', (lobbyId) => {
   });
   
 // Function to send the typed text to the server
-function sendTypedText(text, startTime) {
-  const timestamp = Date.now()-startTime;
+function sendTypedText(text) {
   const wpm = document.querySelector(`.wpm-${socket.id} span`).innerHTML;
-    socket.emit('typedText', { text,timestamp,wpm });
+    socket.emit('typedText', { text,wpm });
   }
 
   socket.on('disconnect', () => {
@@ -81,6 +80,14 @@ socket.on('gameUpdate', (data) => {
     if (data.type === 'playerDataUpdate') {
       // Handle updates to the player data (accuracy and WPM) and update the frontend
       const playersData = data.playerData;
+      timeLeft = data.startTime;
+
+      let wpm = Math.round(((charIndex - mistakes)  / 5) / (maxTime - timeLeft) * 60);
+        wpm = wpm < 0 || !wpm || wpm === Infinity ? 0 : wpm;
+        console.log(document.querySelector(`.wpm-${socket.id} span`).innerText);
+        document.querySelector(`.wpm-${socket.id} span`).innerText = wpm;
+
+        document.querySelector(".time span").innerText=timeLeft;
       updateLeaderboard(playersData);
     }
     else if(data.type==="gameStart"){
@@ -88,8 +95,7 @@ socket.on('gameUpdate', (data) => {
       for(const playerId in data.players){
         createResultDetails(data.players[playerId].id);
       }
-      
-      timer = initTimer();
+      timeLeft = data.startTime;
     }    
     else if(data.type==="wait"){
       document.getElementById('game-text').innerHTML = `Waiting for other ${data.values} to join`;
@@ -154,8 +160,6 @@ function createResultDetails(id) {
 }
   
   function updateLeaderboard(playersData) {
-    const wpm = ".wpm-%s span";
-    const accuracy = ".accuracy-%s span";
       
     for (const playerId in playersData) {
       const wpmTag = document.querySelector(`${".wpm-%s span".replace("%s",playersData[playerId].id)}`);
@@ -186,14 +190,11 @@ function getKey (e) {
 var text = document.querySelector('#game-text');
 var originalQueue = text.innerHTML;
 
+
 document.querySelector("#typing-area").addEventListener('input',(event)=>{
   initTyping();
+  sendTypedText(document.querySelector('#typing-area').value);
 });
-
-  document.getElementById('typing-area').addEventListener('keyup', (event) => {
-    const typedText = event.target.value;
-    sendTypedText(typedText);
-  });
 
 document.body.addEventListener('keydown', function (e) {
     var key = getKey(e);
@@ -209,12 +210,7 @@ document.body.addEventListener('keyup', function (e) {
 });
 
 
-
-
-
-
-const typingText = document.getElementById('game-text'),
-timeTag = document.querySelector(".time span b");
+const typingText = document.getElementById('game-text');
 
 
 function loadParagraph(paragraph) {
@@ -228,14 +224,10 @@ function loadParagraph(paragraph) {
     typingText.addEventListener("click", () => document.querySelector("#typing-area").focus());
 }
 
-function initTyping(currId) {
+function initTyping() {
     let characters = typingText.querySelectorAll("span");
     let typedChar = document.querySelector("#typing-area").value.split("")[charIndex];
     if(charIndex < characters.length - 1) {
-      if(!isTyping) {
-        timer = setInterval(initTimer, 1000);
-        isTyping = true;
-    }
         if(typedChar == null) {
             if(charIndex > 0) {
                 charIndex--;
@@ -255,25 +247,11 @@ function initTyping(currId) {
         }
         characters.forEach(span => span.classList.remove("active"));
         characters[charIndex].classList.add("active");
-console.log(mistakes);
+
         let wpm = Math.round(((charIndex - mistakes)  / 5) / (maxTime - timeLeft) * 60);
-        console.log(charIndex+" "+wpm+" "+mistakes+" "+maxTime+" "+timeLeft);
         wpm = wpm < 0 || !wpm || wpm === Infinity ? 0 : wpm;
         
         let wpmTag = document.querySelector(`.wpm-${socket.id} span`);
         wpmTag.innerText = wpm;
     } 
-}
-
-function initTimer() {
-    if(timeLeft > 0) {
-        timeLeft--;
-        timeTag.innerText = timeLeft;
-        let wpm = Math.round(((charIndex - mistakes)  / 5) / (maxTime - timeLeft) * 60);
-        let wpmTag = document.querySelector(`.wpm-${socket.id} span`);
-        wpmTag.innerText = wpm;
-        sendTypedText(document.querySelector(`#typing-area`).innerText);
-    } else {
-        clearInterval(timer);
-    }
 }
