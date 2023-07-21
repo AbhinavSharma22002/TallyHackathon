@@ -1,13 +1,37 @@
 const socket = io();
 
+
+let timer,
+maxTime = 60,
+timeLeft = maxTime,
+charIndex = 0,isTyping = 0,mistakes = 0;
+
 //as soon as the solo page loads a new lobby should be created
 window.onload = function(e){
+
+  console.log(window.location.href);
+  if(window.location.href==="http://localhost:500/solo"){
     const difficultyLevel = prompt('Enter the difficulty level (easy, medium, or hard):');
     if (difficultyLevel && ['easy', 'medium', 'hard'].includes(difficultyLevel.toLowerCase())) {
         socket.emit('createOrJoin',{type:'solo',difficultyLevel:difficultyLevel.toLowerCase()});
     } else {
       alert('Invalid difficulty level. Please enter "easy", "medium", or "hard".');
     }
+  }
+  else{
+    const name = prompt('Enter the NickName:');
+    const difficultyLevel = prompt('Enter the difficulty level (easy, medium, or hard):');
+    if (difficultyLevel && ['easy', 'medium', 'hard'].includes(difficultyLevel.toLowerCase()) && name!=='' ) {
+        socket.emit('createOrJoin',{type:'multiplayer',difficultyLevel:difficultyLevel.toLowerCase(),name});
+    } else {
+      if(name!=''){
+        alert('NickName cannot be empty');
+      }
+      if(!(difficultyLevel && ['easy', 'medium', 'hard'].includes(difficultyLevel.toLowerCase())))
+        alert('Invalid difficulty level. Please enter "easy", "medium", or "hard".');
+    }
+  }
+    
 }
 
 // Handle joinedLobby event and display the lobby ID (you can handle this in your UI)
@@ -18,11 +42,40 @@ socket.on('joinedLobby', (lobbyId) => {
 // Function to send the typed text to the server
 function sendTypedText(text, startTime) {
   const timestamp = Date.now()-startTime;
-    socket.emit('typedText', { text,timestamp });
+  const wpm = document.querySelector(`.wpm-${socket.id} span`).innerHTML;
+  console.log(wpm);
+    socket.emit('typedText', { text,timestamp,wpm });
   }
 
-  socket.on('disconnected',()=>{
-    alert('You Were Disconnected');
+  socket.on('disconnect', () => {
+    console.log('Disconnected from the server.');
+  
+    // Store a flag in localStorage to indicate that the user was disconnected
+    localStorage.setItem('disconnected', 'true');
+  });
+  // Check for disconnection on page reload or close
+window.addEventListener('beforeunload', () => {
+  console.log('Disconnected from the server.');
+  // Store a flag in localStorage to indicate that the user was disconnected
+  localStorage.setItem('disconnected', 'true');
+});
+  
+  // Function to show a disconnection notification to the user
+  function showDisconnectionNotification() {
+    // Replace this with your own custom notification implementation
+    alert('You have been disconnected from the server.');
+  }
+  
+  // Check for the disconnection flag on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    const wasDisconnected = localStorage.getItem('disconnected');
+    if (wasDisconnected === 'true') {
+      // Clear the flag to avoid showing the notification repeatedly
+      localStorage.removeItem('disconnected');
+  
+      // Show the disconnection notification
+      showDisconnectionNotification();
+    }
   });
   
 // Handle real-time updates from the server
@@ -30,14 +83,19 @@ socket.on('gameUpdate', (data) => {
     if (data.type === 'playerDataUpdate') {
       // Handle updates to the player data (accuracy and WPM) and update the frontend
       const playersData = data.playerData;
-      // Example: Update the leaderboard or player progress on the frontend
       updateLeaderboard(playersData);
     }
     else if(data.type==="gameStart"){
       loadParagraph(data.text);
-      console.log(data);
-      // createResultDetails();
+      for(const playerId in data.players){
+        createResultDetails(data.players[playerId].id);
+      }
+      
+      timer = initTimer();
     }    
+    else if(data.type==="wait"){
+      document.getElementById('game-text').innerHTML = `Waiting for other ${data.values} to join`;
+    }
     else if(data.type==="endGame"){
       // Handle updates to the player data (accuracy and WPM) and update the frontend
       const playersData = data.playerData;
@@ -73,10 +131,10 @@ function createResultDetails(id) {
   // Create <ul> element with class="result-details"
   const ul = createElementWithAttributes('ul', { class: 'result-details' });
 
-  // Create "Mistakes" li element
-  const liMistake = createElementWithAttributes('li', { class: `mistake-${id}` });
+  // Create "Accuracy" li element
+  const liMistake = createElementWithAttributes('li', { class: `accuracy-${id}` });
   const pMistake = document.createElement('p');
-  pMistake.textContent = 'Mistakes:';
+  pMistake.textContent = 'Accuracy:';
   const spanMistake = document.createElement('span');
   spanMistake.textContent = '0';
   liMistake.appendChild(pMistake);
@@ -93,35 +151,21 @@ function createResultDetails(id) {
   liWPM.appendChild(spanWPM);
   ul.appendChild(liWPM);
 
-  // Create "Accuracy" li element
-  const liAccuracy = createElementWithAttributes('li', { class: `accuracy-${id}` });
-  const pAccuracy = document.createElement('p');
-  pAccuracy.textContent = 'Accuracy:';
-  const spanAccuracy = document.createElement('span');
-  spanAccuracy.textContent = '0';
-  liAccuracy.appendChild(pAccuracy);
-  liAccuracy.appendChild(spanAccuracy);
-  ul.appendChild(liAccuracy);
-
   // Append the entire <ul> to the "resultDiv"
   resultDiv.appendChild(ul);
 }
   
-  // Example function to update the leaderboard on the frontend
   function updateLeaderboard(playersData) {
-    // Implement your code to update the leaderboard based on the received player data
-    // Example: Display players' accuracy and WPM on the leaderboard
-    const wpmTag = document.querySelector(".wpm span");
-    const accuracyTag = document.querySelector(".accuracy span");
-
-    // leaderboard.innerHTML = ''; // Clear the current leaderboard content
+    const wpm = ".wpm-%s span";
+    const accuracy = ".accuracy-%s span";
+      
     for (const playerId in playersData) {
+      const wpmTag = document.querySelector(`${".wpm-%s span".replace("%s",playersData[playerId].id)}`);
+      const accuracyTag = document.querySelector(`${".accuracy-%s span".replace("%s",playersData[playerId].id)}`);
+
       const playerData = playersData[playerId];
       wpmTag.innerHTML = playerData.wpm;
       accuracyTag.innerHTML = playerData.accuracy;
-      // const playerRow = document.createElement('div');
-      // playerRow.textContent = `Player ${playerId}: Accuracy: ${playerData.accuracy}%, WPM: ${playerData.wpm}`;
-      // leaderboard.appendChild(playerRow);
     }
   }
   
@@ -144,6 +188,10 @@ function getKey (e) {
 var text = document.querySelector('#game-text');
 var originalQueue = text.innerHTML;
 
+document.querySelector("#typing-area").addEventListener('input',(event)=>{
+  initTyping();
+});
+
   document.getElementById('typing-area').addEventListener('keyup', (event) => {
     const typedText = event.target.value;
     sendTypedText(typedText);
@@ -154,7 +202,6 @@ document.body.addEventListener('keydown', function (e) {
     if (!key) {
         return console.warn('No key for', e.keyCode);
     }
-
     key.setAttribute('data-pressed', 'on');
 });
 
@@ -169,34 +216,28 @@ document.body.addEventListener('keyup', function (e) {
 
 
 const typingText = document.getElementById('game-text'),
-inpField = document.querySelector("#typing-area"),
-// tryAgainBtn = document.querySelector(".content button"),
-// timeTag = document.querySelector(".time span b"),
-mistakeTag = document.querySelector(".mistake span"),
-wpmTag = document.querySelector(".wpm span");
-// cpmTag = document.querySelector(".cpm span");
+timeTag = document.querySelector(".time span b");
 
-// let timer,
-// maxTime = 60,
-// timeLeft = maxTime,
-let charIndex = 0,isTyping = 0,mistakes = 0;
 
 function loadParagraph(paragraph) {
-        // Example: Display the lobby ID in the UI
     typingText.innerHTML = "";
     paragraph.split("").forEach(char => {
         let span = `<span>${char}</span>`
         typingText.innerHTML += span;
     });
     typingText.querySelectorAll("span")[0].classList.add("active");
-    document.addEventListener("keydown", () => inpField.focus());
-    typingText.addEventListener("click", () => inpField.focus());
+    document.addEventListener("keydown", () => document.querySelector("#typing-area").focus());
+    typingText.addEventListener("click", () => document.querySelector("#typing-area").focus());
 }
 
-function initTyping() {
+function initTyping(currId) {
     let characters = typingText.querySelectorAll("span");
-    let typedChar = inpField.value.split("")[charIndex];
+    let typedChar = document.querySelector("#typing-area").value.split("")[charIndex];
     if(charIndex < characters.length - 1) {
+      if(!isTyping) {
+        timer = setInterval(initTimer, 1000);
+        isTyping = true;
+    }
         if(typedChar == null) {
             if(charIndex > 0) {
                 charIndex--;
@@ -216,29 +257,30 @@ function initTyping() {
         }
         characters.forEach(span => span.classList.remove("active"));
         characters[charIndex].classList.add("active");
-
+console.log(mistakes);
         let wpm = Math.round(((charIndex - mistakes)  / 5) / (maxTime - timeLeft) * 60);
+        console.log(charIndex+" "+wpm+" "+mistakes+" "+maxTime+" "+timeLeft);
         wpm = wpm < 0 || !wpm || wpm === Infinity ? 0 : wpm;
         
+        let wpmTag = document.querySelector(`.wpm-${socket.id} span`);
         wpmTag.innerText = wpm;
-        mistakeTag.innerText = mistakes;
-        // cpmTag.innerText = charIndex - mistakes;
     } 
     // else {
     //     inpField.value = "";
     // }   
 }
 
-// function initTimer() {
-//     if(timeLeft > 0) {
-//         timeLeft--;
-//         timeTag.innerText = timeLeft;
-//         let wpm = Math.round(((charIndex - mistakes)  / 5) / (maxTime - timeLeft) * 60);
-//         wpmTag.innerText = wpm;
-//     } else {
-//         clearInterval(timer);
-//     }
-// }
+function initTimer() {
+    if(timeLeft > 0) {
+        timeLeft--;
+        timeTag.innerText = timeLeft;
+        let wpm = Math.round(((charIndex - mistakes)  / 5) / (maxTime - timeLeft) * 60);
+        let wpmTag = document.querySelector(`.wpm-${socket.id} span`);
+        wpmTag.innerText = wpm;
+    } else {
+        clearInterval(timer);
+    }
+}
 
 // function resetGame() {
 //     loadParagraph();
@@ -253,5 +295,4 @@ function initTyping() {
 // }
 
 // loadParagraph();
-inpField.addEventListener("input", initTyping);
 // tryAgainBtn.addEventListener("click", resetGame);

@@ -84,21 +84,20 @@ else{
       io.to(lobby.players[k].id).emit('gameUpdate', gameDetails);
 }
 function lobbyUpdate(index){
-  console.log(lobbies[index]);
   let interval = setInterval(() => {
     
     let diff = Date.now()-lobbies[index].startTime;
     //each lobby will match only for 1 min
-    console.log(diff);
-    if(diff>=20000){
+    if(diff>=60000){
       const gameUpdate = {
         type: 'endGame',
         playerData: lobbies[index].players,
       };
-
-      
       for(let k = 0;k<lobbies[index].players.length;k++)
       io.to(lobbies[index].players[k].id).emit('gameUpdate', gameUpdate);
+
+      lobbies.splice(index, 1);
+
       clearInterval(interval);
     }
   }, 1000); // Update every 1 second
@@ -130,31 +129,9 @@ function calculateAccuracy(typedText, correctText) {
       matchingWordCount++;
     }
   });
-  return (matchingWordCount / correctWordCount) * 100;
+  return ((matchingWordCount / correctWordCount) * 100).toFixed(2);
 }
 
-// Function to clean up text and split into words
-function cleanAndSplitText(text) {
-  // Remove extra spaces and punctuation marks from the text
-  const cleanedText = text.trimStart().replace(/[.,!'"?]/g, ' ');
-  // Split the cleaned text into words
-  const words = cleanedText.split(/\s+/);
-  return words;
-}
-
-// Function to calculate words per minute (WPM)
-function calculateWPM(typedText, timeInMilliseconds, correctText) {
-
-  const typedWords = cleanAndSplitText(typedText).length;
-  const timeInMinutes = timeInMilliseconds / (1000 * 60);
-  const rawWPM = typedWords / timeInMinutes;
-
-  // Adjust WPM for accuracy percentage (reduce WPM based on accuracy)
-  const accuracy = calculateAccuracy(typedText, correctText);
-  const adjustedWPM = rawWPM * (accuracy / 100);
-
-  return Math.floor(adjustedWPM);
-}
 
 // Function to get the lobby ID that a player is in
 function getPlayerLobby(playerId) {
@@ -183,7 +160,7 @@ io.on('connection', (socket) => {
       MAX_PLAYERS_PER_LOBBY = 4;
     }
     for(let i = 0;i<lobbies.length;i++){
-      if(lobbies[i].difficultyLevel===data.difficultyLevel && lobbies[i].players.length<MAX_PLAYERS_PER_LOBBY ){
+      if(lobbies[i].difficultyLevel===data.difficultyLevel && lobbies[i].players.length<MAX_PLAYERS_PER_LOBBY && lobbies[i].correctText==='' ){
         lobbyId = {lobby:lobbies[i],index:i};
       }
     }
@@ -225,12 +202,12 @@ io.on('connection', (socket) => {
 
   // Handle typed text from the client along with the time taken
   socket.on('typedText', (data) => {
-    const { text } = data;
+    const { wpm,text } = data;
     const data1 = getPlayerLobby(socket.id);
 
     if(data1!=null){
       
-      const {lobbyId,index,startTime} = data1;
+      const {lobbyId,index} = data1;
       // Assuming you have stored the correct text for the game somewhere (e.g., in a variable or database)
       const correctTex = getCorrectText(lobbyId);
 
@@ -238,8 +215,8 @@ io.on('connection', (socket) => {
       // Calculate accuracy and WPM
       if(correctTex!==''){
         const accuracy = calculateAccuracy(text.trimStart(), correctTex);
-      const timeTaken = Date.now() - startTime;
-      const wpm = calculateWPM(text.trimStart(), timeTaken, correctTex);
+      // const timeTaken = Date.now() - startTime;
+      // const wpm = calculateWPM(text.trimStart(), timeTaken, correctTex);
     
       
       // Update the player's data in the object
@@ -278,8 +255,6 @@ io.on('connection', (socket) => {
       for(let k = 0;k<lobbies[index].players.length;k++)
       io.to(lobbies[index].players[k].id).emit('gameUpdate', gameUpdate);
       }
-  
-      
 
       }
       

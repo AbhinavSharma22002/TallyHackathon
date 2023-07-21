@@ -12,7 +12,7 @@ router.get('/solo', async function(req,res,next){
     {item: '/stylesheet/design.css'}
   ];
   let data = [
-    {item: '/js/keyboard.js'}
+    {item: '/js/socket.js'}
   ];
   res.render('main',{sheet:data1,script:data});
 });
