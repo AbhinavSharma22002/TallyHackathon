@@ -63,7 +63,7 @@ const lobbies = []; // Object to store active lobbies and their players
 // Function to start the game for a specific lobby
 async function startGame(lobby) {
   // Get a random text from the corresponding difficulty level
-const randomText = await fetchText();
+const randomText = await fetchText(lobby.difficultyLevel);
     lobby.correctText =  randomText;
 
   // Send the game details to all players in the lobby
@@ -78,6 +78,8 @@ const randomText = await fetchText();
 }
 function lobbyUpdate(index){
   let interval = setInterval(() => {
+    if(lobbies[index]!=undefined){
+      
     let diff = lobbies[index].startTime;
     //each lobby will match only for 1 min
     if(diff<=0){
@@ -105,6 +107,7 @@ function lobbyUpdate(index){
       for(let k = 0;k<lobbies[index].players.length;k++)
       io.to(lobbies[index].players[k].id).emit('gameUpdate', gameUpdate);
 
+    }
     }
   }, 1000); // Update every 1 second
 }
