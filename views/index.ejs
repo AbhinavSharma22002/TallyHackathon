@@ -3,12 +3,35 @@
 <head>
   <%- include('./head');%>
 </head>
-<body class="text-center d-flex flex-column h-100">
+<style>#myHeader {
+  font-size: 32px;
+  
+  opacity: 0;
+  white-space: nowrap;
+  margin-left: 140px;
+  
+  animation: letterReveal 2s linear forwards;
+}
 
-<main class="flex-shrink-0 form-signin w-100 m-auto">
+@keyframes letterReveal {
+  0% {
+    opacity: 0;
+    width: 0;
+  }
+  100% {
+    opacity: 1;
+    width: 80%;
+  }
+}</style>
+<body style = "background-color: #323437;"class="text-center d-flex flex-column h-100">
+  <h1 style=" margin-top: 50px;color:white; font-size: 50px; font-family: Vazirmatn; width: 100%;; max-width: 10000px;" class="bg-secondary p-3 mb-5"><b>Tally-Bitrisers' Arena</b></h1>
+<main class="flex-shrink-0 form-signin w-100 m-auto ">
+  <h1 id="myHeader" style="
+    margin-top: 100px; margin-bottom: 100px; font-family: Roboto Mono; color: white;"class="bg-secondary p-3 mb-5">Practice to Type.<br>
+               Broaden Your Horizons.</h1>
   <div class="jumbotron  w-100 m-auto">
-    <a class="btn btn-primary" href="/solo">Practice</a>
-    <a class="btn btn-danger" href="/multiplayer">Compete</a>
+    <a style="margin-top: 200px; margin-right: 50px; width: 200px; font-family: Vazirmatn;" class="btn btn-primary" href="/solo">Practice</a>
+    <a style="margin-top: 200px; margin-right: 50px; width: 200px; font-family: Vazirmatn;" class="btn btn-danger" href="/multiplayer">Compete</a>
   </div>
 </main>
 

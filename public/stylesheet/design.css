@@ -4,7 +4,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Roboto Mono', sans-serif;
 }
 body{
   display: flex;
@@ -182,3 +182,4 @@ li:not(:first-child) span{
     margin-top: 10px;
   }
 }
+

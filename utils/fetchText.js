@@ -1,6 +1,7 @@
 const fetch = require('isomorphic-fetch');
+
 const fetchText = async (difficulty) => {
-    const url = 'https://random-word-api.vercel.app/api?words=80'; // Replace this with the URL of the API you want to fetch
+  const url = 'https://random-word-api.vercel.app/api?words=80'; // Replace this with the URL of the API you want to fetch
     try {
       let specificUrl = '';
       if(difficulty==='easy'){
