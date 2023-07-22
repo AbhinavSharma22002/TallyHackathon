@@ -11,7 +11,7 @@ window.onload = function(e){
   
   if(window.location.href==="http://localhost:500/solo"){
     // const difficultyLevel = prompt('Enter the difficulty level (easy, medium, or hard):');
-    const difficultyLevel = localStorage.getItem(`difficultyLevel-${localStorage.getItem('tabId')}`);
+    const difficultyLevel = sessionStorage.getItem(`difficultyLevel`);
     if (difficultyLevel && ['easy', 'medium', 'hard'].includes(difficultyLevel.toLowerCase())) {
         socket.emit('createOrJoin',{type:'solo',difficultyLevel:difficultyLevel.toLowerCase()});
     } else {
@@ -20,9 +20,9 @@ window.onload = function(e){
   }
   else{
     // const name = prompt('Enter the NickName:');
-    const name = localStorage.getItem(`name-${localStorage.getItem('tabId')}`);
+    const name = sessionStorage.getItem(`name`);
     // const difficultyLevel = prompt('Enter the difficulty level (easy, medium, or hard):');
-    const difficultyLevel = localStorage.getItem(`difficultyLevel-${localStorage.getItem('tabId')}`);
+    const difficultyLevel = sessionStorage.getItem(`difficultyLevel`);
     if (difficultyLevel && ['easy', 'medium', 'hard'].includes(difficultyLevel.toLowerCase()) && name!=='' ) {
         socket.emit('createOrJoin',{type:'multiplayer',difficultyLevel:difficultyLevel.toLowerCase(),name});
     } else {
@@ -51,34 +51,29 @@ function sendTypedText(text) {
 
   socket.on('disconnect', () => {
     console.log('Disconnected from the server.');
-  
-    // Store a flag in localStorage to indicate that the user was disconnected
-    localStorage.setItem(`disconnected-${localStorage.getItem('tabId')}`, 'true');
+    // Store a flag in sessionStorage to indicate that the user was disconnected
+    sessionStorage.setItem(`disconnected`, 'true');
   });
   // Check for disconnection on page reload or close
 window.addEventListener('beforeunload', () => {
   console.log('Disconnected from the server.');
-  // Store a flag in localStorage to indicate that the user was disconnected
-  localStorage.setItem(`disconnected-${localStorage.getItem('tabId')}`, 'true');
+  // Store a flag in sessionStorage to indicate that the user was disconnected
+  sessionStorage.setItem(`disconnected`, 'true');
 });
   
 
   // Function to show a disconnection notification to the user
   function showDisconnectionNotification() {
-document.addEventListener("DOMContentLoaded", function () {
-    
-  // generate('disconnected');
   alert('You were disconnected.');
-});
 
 }
   
   // Check for the disconnection flag on page load
   document.addEventListener('DOMContentLoaded', () => {
-    const wasDisconnected = localStorage.getItem('disconnected');
+    const wasDisconnected = sessionStorage.getItem(`disconnected`);
     if (wasDisconnected === 'true') {
       // Clear the flag to avoid showing the notification repeatedly
-      localStorage.removeItem('disconnected');
+      sessionStorage.removeItem(`disconnected`);
   
       // Show the disconnection notification
       showDisconnectionNotification();

@@ -64,20 +64,27 @@
       window.crypto.getRandomValues(array);
       return array[0].toString(36);
     }
+
+    function getTabId() {
+      let tabId = sessionStorage.getItem("tabId");
+      console.log(tabId);
+      if (!tabId) {
+        tabId = generateUniqueTabId();
+        sessionStorage.setItem("tabId", tabId);
+      }
+      return tabId;
+    }
   // Generate a unique tab ID for this tab
   const tabId = generateUniqueTabId(); // Implement the function to generate a unique tab ID
   
   
   document.getElementById('submit').addEventListener('click',function() {
-    const key = `tabId`;
-  const value = `${tabId}`;
-  localStorage.setItem(key, value);
-  console.log(localStorage.getItem(`name-${localStorage.getItem('tabId')}`));
+  // console.log(localStorage.getItem(`name-${sessionStorage.getItem('tabId')}`));
   //Notify other tabs about the update
       window.postMessage("localStorageUpdated", "*");
       
-    localStorage.setItem(`name-${localStorage.getItem('tabId')}`,document.getElementById("InputName1").value);
-    localStorage.setItem(`difficultyLevel-${localStorage.getItem('tabId')}`,document.getElementById('InputLevel1').value);
+      sessionStorage.setItem(`name`,document.getElementById("InputName1").value);
+      sessionStorage.setItem(`difficultyLevel`,document.getElementById('InputLevel1').value);
   })
 </script>
 
