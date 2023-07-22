@@ -29,9 +29,20 @@
   <h1 id="myHeader" style="
     margin-top: 100px; margin-bottom: 100px; font-family: Roboto Mono; color: white;"class="bg-secondary p-3 mb-5">Practice to Type.<br>
                Broaden Your Horizons.</h1>
+               <form>
+                <div class="form-group">
+                  <label for="InputName1">Name</label>
+                  <input type="name" class="form-control" id="InputName1" aria-describedby="nameHelp" placeholder="Enter name">
+                </div>
+                <div class="form-group">
+                  <label for="InputLevel1">Difficulty Level</label>
+                  <input type="test" class="form-control" id="InputLevel1" placeholder="Enter Difficulty Level">
+                </div>
+                <!-- <button type="button" class="btn btn-primary" id="submit">Submit</button> -->
+              </form>
   <div class="jumbotron  w-100 m-auto">
-    <a style="margin-top: 200px; margin-right: 50px; width: 200px; font-family: Vazirmatn;" class="btn btn-primary" href="/solo">Practice</a>
-    <a style="margin-top: 200px; margin-right: 50px; width: 200px; font-family: Vazirmatn;" class="btn btn-danger" href="/multiplayer">Compete</a>
+    <a style="margin-top: 200px; margin-right: 50px; width: 200px; font-family: Vazirmatn;" class="btn btn-primary" href="/solo" id="submit">Practice</a>
+    <a style="margin-top: 200px; margin-right: 50px; width: 200px; font-family: Vazirmatn;" class="btn btn-danger" href="/multiplayer" id="submit">Compete</a>
   </div>
 </main>
 
@@ -46,6 +57,29 @@
 <footer>
   <%- include('./footer'); %>
 </footer>
+<script>
+  // Function to generate a random tab ID
+  function generateUniqueTabId() {
+      const array = new Uint32Array(1);
+      window.crypto.getRandomValues(array);
+      return array[0].toString(36);
+    }
+  // Generate a unique tab ID for this tab
+  const tabId = generateUniqueTabId(); // Implement the function to generate a unique tab ID
+  
+  
+  document.getElementById('submit').addEventListener('click',function() {
+    const key = `tabId`;
+  const value = `${tabId}`;
+  localStorage.setItem(key, value);
+  console.log(localStorage.getItem(`name-${localStorage.getItem('tabId')}`));
+  //Notify other tabs about the update
+      window.postMessage("localStorageUpdated", "*");
+      
+    localStorage.setItem(`name-${localStorage.getItem('tabId')}`,document.getElementById("InputName1").value);
+    localStorage.setItem(`difficultyLevel-${localStorage.getItem('tabId')}`,document.getElementById('InputLevel1').value);
+  })
+</script>
 
 </body>
 
