@@ -66,16 +66,6 @@ async function startGame(lobby) {
 const randomText = await fetchText(lobby.difficultyLevel);
     lobby.correctText =  randomText;
 
-    for(let k = 0;k<lobby.players.length;k++)
-    {
-      if(lobby.players[k].accuracy){
-        lobby.player[k].accuracy = 0;
-      }
-      if(lobby.players[k].wpm){
-        lobby.player[k].wpm = 0;
-      }
-    }
-
   // Send the game details to all players in the lobby
   const gameDetails = {
     type: 'gameStart',
@@ -92,12 +82,25 @@ function lobbyUpdate(index){
       
     let diff = lobbies[index].startTime;
     //each lobby will match only for 1 min
-    if(diff<=0){
+    if(diff<=40){
 
       // Calculate player scores based on the scoring criteria
 lobbies[index].players.forEach((player) => {
-  const wpmScore = player.wpm * 0.5; 
-  const accuracyScore = player.accuracy * 0.5;
+  let wpmScore = 0,accuracyScore = 0;
+  if(player.wpm===undefined){
+    player.wpm = 0;
+    wpmScore = 0;
+  }else{
+    wpmScore = player.wpm * 0.5;
+  }
+
+  if(player.accuracy===undefined){
+    player.accuracy = 0;
+    accuracyScore = 0;
+  }
+  else{
+    accuracyScore = player.accuracy * 0.5;
+  }
   player.score = wpmScore + accuracyScore;
 });
 

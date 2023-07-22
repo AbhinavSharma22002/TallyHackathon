@@ -36,8 +36,6 @@ window.onload = function(e){
   
 }
 
-
-
 // Handle joinedLobby event and display the lobby ID (you can handle this in your UI)
 socket.on('joinedLobby', (lobbyId) => {
     console.log('Joined lobby:', lobbyId);
@@ -97,7 +95,7 @@ socket.on('gameUpdate', (data) => {
     else if(data.type==="gameStart"){
       loadParagraph(data.text);
       for(const playerId in data.players){
-        createResultDetails(data.players[playerId].id,0,0);
+        createResultDetails(data.players[playerId].id,playerId,0,0,false);
       }
       timeLeft = data.startTime;
     }    
@@ -112,7 +110,7 @@ socket.on('gameUpdate', (data) => {
 
     for (const playerId in playersData) {
       const playerData = playersData[playerId];
-      createResultDetails(playerId,playerData.accuracy,playerData.wpm);      
+      createResultDetails(playerData.id,playerId,playerData.accuracy,playerData.wpm,true);      
     }
 
     document.getElementById("game-text").style.display = "none";
@@ -132,12 +130,26 @@ function createElementWithAttributes(tagName, attributes) {
 }
 
 // Function to create the result details and append them to the "resultDiv"
-function createResultDetails(id,accuracy,wpm) {
+function createResultDetails(id,Id,accuracy,wpm,end) {
   const resultDiv = document.getElementById('leaderboard');
 
   // Create <ul> element with class="result-details"
   const ul = createElementWithAttributes('ul', { class: 'result-details' });
 
+  if(end){
+    // Create "id" li element
+  const liMistake = createElementWithAttributes('li', { class: `player-${id}` });
+  const pMistake = document.createElement('p');
+  pMistake.textContent = 'Player:';
+  const spanMistake = document.createElement('span');
+  spanMistake.textContent = `${Id}`;
+  liMistake.appendChild(pMistake);
+  liMistake.appendChild(spanMistake);
+  ul.appendChild(liMistake);
+  resultDiv.appendChild(ul);
+  }
+
+  
   // Create "Accuracy" li element
   const liMistake = createElementWithAttributes('li', { class: `accuracy-${id}` });
   const pMistake = document.createElement('p');
@@ -160,6 +172,7 @@ function createResultDetails(id,accuracy,wpm) {
 
   // Append the entire <ul> to the "resultDiv"
   resultDiv.appendChild(ul);
+
 }
   
   function updateLeaderboard(playersData) {
@@ -169,11 +182,11 @@ function createResultDetails(id,accuracy,wpm) {
       const accuracyTag = document.querySelector(`${".accuracy-%s span".replace("%s",playersData[playerId].id)}`);
 
       const playerData = playersData[playerId];
-      if(playerData.wpm===0)
+      if(playerData.wpm===undefined)
       wpmTag.innerHTML = 'Yet to Start';
       else
       wpmTag.innerHTML = playerData.wpm;
-      if(playerData.accuracy===0)
+      if(playerData.accuracy===undefined)
       accuracyTag.innerHTML = 'Yet to Start';
       else
       accuracyTag.innerHTML = playerData.accuracy;
