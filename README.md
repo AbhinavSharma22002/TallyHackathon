@@ -31,7 +31,7 @@ Typing Speed Game is a web-based application that allows users to measure and en
 
 To run the Typing Speed Game locally, follow these steps:
 
-1. Clone the repository: `git clone https://github.com/yourusername/typing-speed-game.git`
+1. Clone the repository: `git clone https://github.com/AbhinavSharma22002/TallyHackathon.git`
 2. Navigate to the project directory: `cd typing-speed-game`
 3. Install dependencies: `npm install` or `yarn install`
 4. Start the development server: `npm start` or `yarn start`
