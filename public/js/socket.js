@@ -10,13 +10,18 @@ charIndex = 0,isTyping = 0,mistakes = 0;
 window.onload = function(e){
   
   if(window.location.href==="http://localhost:500/solo"){
+    const name = sessionStorage.getItem(`name`);
     // const difficultyLevel = prompt('Enter the difficulty level (easy, medium, or hard):');
     const difficultyLevel = sessionStorage.getItem(`difficultyLevel`);
-    if (difficultyLevel && ['easy', 'medium', 'hard'].includes(difficultyLevel.toLowerCase())) {
-        socket.emit('createOrJoin',{type:'solo',difficultyLevel:difficultyLevel.toLowerCase()});
-    } else {
-      alert('Invalid difficulty level. Please enter "easy", "medium", or "hard".');
+    if (difficultyLevel && ['easy', 'medium', 'hard'].includes(difficultyLevel.toLowerCase()) && name!=='' ) {
+      socket.emit('createOrJoin',{type:'solo',difficultyLevel:difficultyLevel.toLowerCase(),name});
+  } else {
+    if(name!=''){
+      alert('NickName cannot be empty');
     }
+    if(!(difficultyLevel && ['easy', 'medium', 'hard'].includes(difficultyLevel.toLowerCase())))
+      alert('Invalid difficulty level. Please enter "easy", "medium", or "hard".');
+  }
   }
   else{
     // const name = prompt('Enter the NickName:');
@@ -95,7 +100,7 @@ socket.on('gameUpdate', (data) => {
     else if(data.type==="gameStart"){
       loadParagraph(data.text);
       for(const playerId in data.players){
-        createResultDetails(data.players[playerId].id,playerId,0,0,false);
+        createResultDetails(data.players[playerId].id,data.players[playerId].name,0,0,false);
       }
       timeLeft = data.startTime;
     }    
@@ -110,7 +115,7 @@ socket.on('gameUpdate', (data) => {
 
     for (const playerId in playersData) {
       const playerData = playersData[playerId];
-      createResultDetails(playerData.id,playerId,playerData.accuracy,playerData.wpm,true);      
+      createResultDetails(playerData.id,playerData.name,playerData.accuracy,playerData.wpm,true);      
     }
 
     document.getElementById("game-text").style.display = "none";
@@ -130,24 +135,21 @@ function createElementWithAttributes(tagName, attributes) {
 }
 
 // Function to create the result details and append them to the "resultDiv"
-function createResultDetails(id,Id,accuracy,wpm,end) {
+function createResultDetails(id,name,accuracy,wpm,end) {
   const resultDiv = document.getElementById('leaderboard');
 
   // Create <ul> element with class="result-details"
   const ul = createElementWithAttributes('ul', { class: 'result-details' });
 
-  if(end){
-    // Create "id" li element
-  const liMistake = createElementWithAttributes('li', { class: `player-${id}` });
-  const pMistake = document.createElement('p');
-  pMistake.textContent = 'Player:';
-  const spanMistake = document.createElement('span');
-  spanMistake.textContent = `${Id}`;
-  liMistake.appendChild(pMistake);
-  liMistake.appendChild(spanMistake);
-  ul.appendChild(liMistake);
+    // Create "name" li element
+  const liPlayer = createElementWithAttributes('li', { class: `player-${id}` });
+  const pPlayer = document.createElement('p');
+  const spanPlayer = document.createElement('span');
+  spanPlayer.textContent = `${name}`;
+  liPlayer.appendChild(pPlayer);
+  liPlayer.appendChild(spanPlayer);
+  ul.appendChild(liPlayer);
   resultDiv.appendChild(ul);
-  }
 
   
   // Create "Accuracy" li element

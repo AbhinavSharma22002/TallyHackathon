@@ -91,7 +91,7 @@ lobbies[index].players.forEach((player) => {
     player.wpm = 0;
     wpmScore = 0;
   }else{
-    wpmScore = player.wpm * 0.5;
+    wpmScore = player.wpm * 0.75;
   }
 
   if(player.accuracy===undefined){
@@ -99,7 +99,7 @@ lobbies[index].players.forEach((player) => {
     accuracyScore = 0;
   }
   else{
-    accuracyScore = player.accuracy * 0.5;
+    accuracyScore = player.accuracy * 0.25;
   }
   player.score = wpmScore + accuracyScore;
 });
@@ -216,7 +216,7 @@ io.on('connection', (socket) => {
     }
 
     // Add the player to the lobby
-    lobbies[lobbyId.index].players.push({id:socket.id});
+    lobbies[lobbyId.index].players.push({id:socket.id,name:data.name});
 
     // Join the room associated with the lobby
     socket.join(lobbyId);
@@ -258,12 +258,9 @@ io.on('connection', (socket) => {
       // Update the player's data in the object
       for(let j = 0;j<lobbies[index].players.length;j++){
         if(lobbies[index].players[j].id===socket.id){
-          lobbies[index].players[j] = {
-            id: socket.id,
-            typedText: text,
-            accuracy,
-            wpm
-          }
+          lobbies[index].players[j].accuracy = accuracy;
+          lobbies[index].players[j].wpm = wpm;
+          lobbies[index].players[j].typedText = text;
         }
       }
 
