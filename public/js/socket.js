@@ -97,7 +97,7 @@ socket.on('gameUpdate', (data) => {
     else if(data.type==="gameStart"){
       loadParagraph(data.text);
       for(const playerId in data.players){
-        createResultDetails(data.players[playerId].id);
+        createResultDetails(data.players[playerId].id,0,0);
       }
       timeLeft = data.startTime;
     }    
@@ -109,13 +109,10 @@ socket.on('gameUpdate', (data) => {
       const playersData = data.playerData;
       const leaderboard = document.getElementById('leaderboard');
     leaderboard.innerHTML = ''; // Clear the current leaderboard content
+
     for (const playerId in playersData) {
       const playerData = playersData[playerId];
-      const playerRow = document.createElement('div');
-
-      playerRow.textContent = `Player ${playerId}: Accuracy: ${playerData.accuracy}%, WPM: ${playerData.wpm}`;
-
-      leaderboard.appendChild(playerRow);
+      createResultDetails(playerId,playerData.accuracy,playerData.wpm);      
     }
 
     document.getElementById("game-text").style.display = "none";
@@ -135,7 +132,7 @@ function createElementWithAttributes(tagName, attributes) {
 }
 
 // Function to create the result details and append them to the "resultDiv"
-function createResultDetails(id) {
+function createResultDetails(id,accuracy,wpm) {
   const resultDiv = document.getElementById('leaderboard');
 
   // Create <ul> element with class="result-details"
@@ -146,7 +143,7 @@ function createResultDetails(id) {
   const pMistake = document.createElement('p');
   pMistake.textContent = 'Accuracy:';
   const spanMistake = document.createElement('span');
-  spanMistake.textContent = '0';
+  spanMistake.textContent = `${accuracy}`;
   liMistake.appendChild(pMistake);
   liMistake.appendChild(spanMistake);
   ul.appendChild(liMistake);
@@ -156,7 +153,7 @@ function createResultDetails(id) {
   const pWPM = document.createElement('p');
   pWPM.textContent = 'WPM:';
   const spanWPM = document.createElement('span');
-  spanWPM.textContent = '0';
+  spanWPM.textContent = `${wpm}`;
   liWPM.appendChild(pWPM);
   liWPM.appendChild(spanWPM);
   ul.appendChild(liWPM);
@@ -172,11 +169,11 @@ function createResultDetails(id) {
       const accuracyTag = document.querySelector(`${".accuracy-%s span".replace("%s",playersData[playerId].id)}`);
 
       const playerData = playersData[playerId];
-      if(playerData.wpm===undefined)
+      if(playerData.wpm===0)
       wpmTag.innerHTML = 'Yet to Start';
       else
       wpmTag.innerHTML = playerData.wpm;
-      if(playerData.accuracy===undefined)
+      if(playerData.accuracy===0)
       accuracyTag.innerHTML = 'Yet to Start';
       else
       accuracyTag.innerHTML = playerData.accuracy;

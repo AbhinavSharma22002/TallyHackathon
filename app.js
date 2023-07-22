@@ -66,6 +66,16 @@ async function startGame(lobby) {
 const randomText = await fetchText(lobby.difficultyLevel);
     lobby.correctText =  randomText;
 
+    for(let k = 0;k<lobby.players.length;k++)
+    {
+      if(lobby.players[k].accuracy){
+        lobby.player[k].accuracy = 0;
+      }
+      if(lobby.players[k].wpm){
+        lobby.player[k].wpm = 0;
+      }
+    }
+
   // Send the game details to all players in the lobby
   const gameDetails = {
     type: 'gameStart',
