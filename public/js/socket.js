@@ -122,6 +122,12 @@ socket.on('gameUpdate', (data) => {
     document.getElementById("typing-area").style.display = "none";
     const box = document.getElementsByClassName('keyboard')[0];
     box.style.display = 'none';
+    const anchorElement = document.createElement('a');
+anchorElement.setAttribute('class', 'btn btn-primary');
+anchorElement.setAttribute('href', '/');
+anchorElement.textContent = 'Go Back';
+
+    leaderboard.appendChild(anchorElement);
     }
     });
 

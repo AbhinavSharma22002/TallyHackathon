@@ -82,7 +82,7 @@ function lobbyUpdate(index){
       
     let diff = lobbies[index].startTime;
     //each lobby will match only for 1 min
-    if(diff<=40){
+    if(diff<=0){
 
       // Calculate player scores based on the scoring criteria
 lobbies[index].players.forEach((player) => {
